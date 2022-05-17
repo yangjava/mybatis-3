@@ -128,6 +128,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
       boolean readWrite,
       boolean blocking,
       Properties props) {
+    // 使用建造模式构建缓存实例
     Cache cache = new CacheBuilder(currentNamespace)
         .implementation(valueOrDefault(typeClass, PerpetualCache.class))
         .addDecorator(valueOrDefault(evictionClass, LruCache.class))
@@ -137,7 +138,9 @@ public class MapperBuilderAssistant extends BaseBuilder {
         .blocking(blocking)
         .properties(props)
         .build();
+    // 添加缓存到 Configuration 对象中
     configuration.addCache(cache);
+    // 设置 currentCache 属性，即当前使用的缓存
     currentCache = cache;
     return cache;
   }
@@ -180,6 +183,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
       Discriminator discriminator,
       List<ResultMapping> resultMappings,
       Boolean autoMapping) {
+    // 为 ResultMap 的 id 和 extend 属性值拼接命名空间
     id = applyCurrentNamespace(id, false);
     extend = applyCurrentNamespace(extend, true);
 
@@ -203,9 +207,11 @@ public class MapperBuilderAssistant extends BaseBuilder {
       }
       resultMappings.addAll(extendedResultMappings);
     }
+    // 构建 ResultMap
     ResultMap resultMap = new ResultMap.Builder(configuration, id, type, resultMappings, autoMapping)
         .discriminator(discriminator)
         .build();
+    // 将创建好的ResultMap加入configuration中
     configuration.addResultMap(resultMap);
     return resultMap;
   }
@@ -266,10 +272,11 @@ public class MapperBuilderAssistant extends BaseBuilder {
     if (unresolvedCacheRef) {
       throw new IncompleteElementException("Cache-ref not yet resolved");
     }
-
+    // 拼接上命名空间，如 <select id="findOne" resultType="User">，
+    // 则id=java.mybaits.dao.UserMapper.findOne
     id = applyCurrentNamespace(id, false);
     boolean isSelect = sqlCommandType == SqlCommandType.SELECT;
-
+    // 创建建造器，设置各种属性
     MappedStatement.Builder statementBuilder = new MappedStatement.Builder(configuration, id, sqlSource, sqlCommandType)
         .resource(resource)
         .fetchSize(fetchSize)
@@ -286,14 +293,18 @@ public class MapperBuilderAssistant extends BaseBuilder {
         .resultSetType(resultSetType)
         .flushCacheRequired(valueOrDefault(flushCache, !isSelect))
         .useCache(valueOrDefault(useCache, isSelect))
-        .cache(currentCache);
-
+      //这里用到了前面解析<cache>节点时创建的Cache对象，设置到MappedStatement对象里面的cache属性中
+      .cache(currentCache);
+    // 获取或创建 ParameterMap
     ParameterMap statementParameterMap = getStatementParameterMap(parameterMap, parameterType, id);
     if (statementParameterMap != null) {
       statementBuilder.parameterMap(statementParameterMap);
     }
-
+    // 构建 MappedStatement
     MappedStatement statement = statementBuilder.build();
+    // 添加 MappedStatement 到 configuration 的 mappedStatements 集合中
+    // 通过UserMapper代理对象调用findOne方法时，
+    // 就可以拼接UserMapper接口名java.mybaits.dao.UserMapper和findOne方法找到id=java.mybaits.dao.UserMapper的MappedStatement，然后执行对应的sql语句
     configuration.addMappedStatement(statement);
     return statement;
   }
@@ -384,13 +395,16 @@ public class MapperBuilderAssistant extends BaseBuilder {
       String resultMap,
       Class<?> resultType,
       String statementId) {
+    //拼接上当前nameSpace
     resultMap = applyCurrentNamespace(resultMap, true);
-
+    //创建一个集合
     List<ResultMap> resultMaps = new ArrayList<>();
     if (resultMap != null) {
+      //通过,分隔字符串，一般resultMap只会是一个，不会使用逗号
       String[] resultMapNames = resultMap.split(",");
       for (String resultMapName : resultMapNames) {
         try {
+          //从configuration中通过resultMapName获取ResultMap对象加入到resultMaps中
           resultMaps.add(configuration.getResultMap(resultMapName.trim()));
         } catch (IllegalArgumentException e) {
           throw new IncompleteElementException("Could not find result map '" + resultMapName + "' referenced from '" + statementId + "'", e);
@@ -423,6 +437,8 @@ public class MapperBuilderAssistant extends BaseBuilder {
       String resultSet,
       String foreignColumn,
       boolean lazy) {
+    // resultType：即 <resultMap type="xxx"/> 中的 type 属性
+    // property：即 <result property="xxx"/> 中的 property 属性
     Class<?> javaTypeClass = resolveResultJavaType(resultType, property, javaType);
     TypeHandler<?> typeHandlerInstance = resolveTypeHandler(javaTypeClass, typeHandler);
     List<ResultMapping> composites;
@@ -431,6 +447,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
     } else {
       composites = parseCompositeColumnName(column);
     }
+    // 通过建造模式构建 ResultMapping
     return new ResultMapping.Builder(configuration, property, column, javaTypeClass)
         .jdbcType(jdbcType)
         .nestedQueryId(applyCurrentNamespace(nestedSelect, true))
@@ -528,7 +545,9 @@ public class MapperBuilderAssistant extends BaseBuilder {
   private Class<?> resolveResultJavaType(Class<?> resultType, String property, Class<?> javaType) {
     if (javaType == null && property != null) {
       try {
+        //获取ResultMap中的type属性的元类，如<resultMap id="user" type="java.model.User"/> 中User的元类
         MetaClass metaResultType = MetaClass.forClass(resultType, configuration.getReflectorFactory());
+        //<result property="name" javaType="String"/>,如果result中没有设置javaType，则获取元类属性对那个的类型
         javaType = metaResultType.getSetterType(property);
       } catch (Exception e) {
         // ignore, following null check statement will deal with the situation

@@ -243,11 +243,14 @@ public class ResolverUtil<T> {
    * @return the resolver util
    */
   public ResolverUtil<T> find(Test test, String packageName) {
+    //将包名转换成文件路径
     String path = getPackagePath(packageName);
 
     try {
+      //通过 VFS（虚拟文件系统）获取指定包下的所有文件的路径名，比如com/mybatis/model/Employe.class
       List<String> children = VFS.getInstance().list(path);
       for (String child : children) {
+        //以.class结尾的文件就加入到Set集合中
         if (child.endsWith(".class")) {
           addIfMatching(test, child);
         }
@@ -268,6 +271,7 @@ public class ResolverUtil<T> {
    * @return the package path
    */
   protected String getPackagePath(String packageName) {
+    //将包名转换成文件路径
     return packageName == null ? null : packageName.replace('.', '/');
   }
 
@@ -281,6 +285,7 @@ public class ResolverUtil<T> {
   @SuppressWarnings("unchecked")
   protected void addIfMatching(Test test, String fqn) {
     try {
+      //将路径名转成全限定的类名，通过类加载器加载类名，比如com.mybatis.model.Employe.class
       String externalName = fqn.substring(0, fqn.indexOf('.')).replace('/', '.');
       ClassLoader loader = getClassLoader();
       if (log.isDebugEnabled()) {
@@ -289,6 +294,7 @@ public class ResolverUtil<T> {
 
       Class<?> type = loader.loadClass(externalName);
       if (test.matches(type)) {
+        //加入到matches集合中
         matches.add((Class<T>) type);
       }
     } catch (Throwable t) {

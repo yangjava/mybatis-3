@@ -107,12 +107,15 @@ public class TypeAliasRegistry {
       if (string == null) {
         return null;
       }
+      // 转换成小写
       // issue #748
       String key = string.toLowerCase(Locale.ENGLISH);
       Class<T> value;
+      // 如果没有设置type属性，则这里传过来的是
       if (typeAliases.containsKey(key)) {
         value = (Class<T>) typeAliases.get(key);
       } else {
+        //如果是设置了自定义的type，则在别名缓存中是获取不到的，直接通过类加载，加载自定义的type，
         value = (Class<T>) Resources.classForName(string);
       }
       return value;
@@ -120,42 +123,57 @@ public class TypeAliasRegistry {
       throw new TypeException("Could not resolve type alias '" + string + "'.  Cause: " + e, e);
     }
   }
-
+  // 从指定的包中解析并注册别名
   public void registerAliases(String packageName) {
     registerAliases(packageName, Object.class);
   }
-
+  // 查找指定包下的所有类
+  // 遍历查找到的类型集合，为每个类型注册别名
   public void registerAliases(String packageName, Class<?> superType) {
+    // 查找包下的父类为 Object.class 的类。
+    // 查找完成后，查找结果将会被缓存到resolverUtil的内部集合中。
     ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
     resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
+    // 获取查找结果
     Set<Class<? extends Class<?>>> typeSet = resolverUtil.getClasses();
     for (Class<?> type : typeSet) {
       // Ignore inner classes and interfaces (including package-info.java)
       // Skip also inner classes. See issue #6
+      // 忽略匿名类，接口，内部类
       if (!type.isAnonymousClass() && !type.isInterface() && !type.isMemberClass()) {
+        // 为类型注册别名
         registerAlias(type);
       }
     }
   }
 
   public void registerAlias(Class<?> type) {
+    // 获取全路径类名的简称
     String alias = type.getSimpleName();
     Alias aliasAnnotation = type.getAnnotation(Alias.class);
     if (aliasAnnotation != null) {
+      // 从注解中取出别名
       alias = aliasAnnotation.value();
     }
+    // 调用重载方法注册别名和类型映射
     registerAlias(alias, type);
   }
-
+  // 若用户为明确配置 alias 属性，MyBatis 会使用类名的小写形式作为别名。
+  // 比如，全限定类名com.mybatis.model.User的别名为user。
+  // 若类中有@Alias注解，则从注解中取值作为别名。
   public void registerAlias(String alias, Class<?> value) {
     if (alias == null) {
       throw new TypeException("The parameter alias cannot be null");
     }
     // issue #748
+    // 将别名转成小写
     String key = alias.toLowerCase(Locale.ENGLISH);
+    // 如果 TYPE_ALIASES 中存在了某个类型映射，这里判断当前类型与映射中的类型是否一致，
+    // 不一致则抛出异常，不允许一个别名对应两种类型
     if (typeAliases.containsKey(key) && typeAliases.get(key) != null && !typeAliases.get(key).equals(value)) {
       throw new TypeException("The alias '" + alias + "' is already mapped to the value '" + typeAliases.get(key).getName() + "'.");
     }
+    // 缓存别名到类型映射
     typeAliases.put(key, value);
   }
 

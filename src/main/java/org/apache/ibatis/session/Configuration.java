@@ -98,17 +98,28 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
 /**
  * @author Clinton Begin
  */
-public class Configuration {
 
+/**
+ * 用于描述 MyBatis 主配置文件信息，
+ * MyBatis 框架在启动时会加载主配置文件，
+ * 将配置信息转换为 Configuration 对象。
+ */
+public class Configuration {
+  // 运行环境
   protected Environment environment;
 
   protected boolean safeRowBoundsEnabled;
   protected boolean safeResultHandlerEnabled = true;
   protected boolean mapUnderscoreToCamelCase;
+  // 有延迟加载属性的对象被调用时完全加载任意属性;false：每个属性按需要加载
   protected boolean aggressiveLazyLoading;
+  // 是否允许多种结果集从一个单独的语句中返回
   protected boolean multipleResultSetsEnabled = true;
+  //是否支持自动生成主键
   protected boolean useGeneratedKeys;
+  //是否使用列标签
   protected boolean useColumnLabel = true;
+  //是否使用缓存标识
   protected boolean cacheEnabled = true;
   protected boolean callSettersOnNulls;
   protected boolean useActualParamName = true;
@@ -181,13 +192,14 @@ public class Configuration {
   }
 
   public Configuration() {
+    // 加载TransactionFactory
     typeAliasRegistry.registerAlias("JDBC", JdbcTransactionFactory.class);
     typeAliasRegistry.registerAlias("MANAGED", ManagedTransactionFactory.class);
-
+    // 加载DataSourceFactory
     typeAliasRegistry.registerAlias("JNDI", JndiDataSourceFactory.class);
     typeAliasRegistry.registerAlias("POOLED", PooledDataSourceFactory.class);
     typeAliasRegistry.registerAlias("UNPOOLED", UnpooledDataSourceFactory.class);
-
+    // 加载Cache
     typeAliasRegistry.registerAlias("PERPETUAL", PerpetualCache.class);
     typeAliasRegistry.registerAlias("FIFO", FifoCache.class);
     typeAliasRegistry.registerAlias("LRU", LruCache.class);
@@ -198,7 +210,7 @@ public class Configuration {
 
     typeAliasRegistry.registerAlias("XML", XMLLanguageDriver.class);
     typeAliasRegistry.registerAlias("RAW", RawLanguageDriver.class);
-
+    // 加载Log
     typeAliasRegistry.registerAlias("SLF4J", Slf4jImpl.class);
     typeAliasRegistry.registerAlias("COMMONS_LOGGING", JakartaCommonsLoggingImpl.class);
     typeAliasRegistry.registerAlias("LOG4J", Log4jImpl.class);
@@ -206,7 +218,7 @@ public class Configuration {
     typeAliasRegistry.registerAlias("JDK_LOGGING", Jdk14LoggingImpl.class);
     typeAliasRegistry.registerAlias("STDOUT_LOGGING", StdOutImpl.class);
     typeAliasRegistry.registerAlias("NO_LOGGING", NoLoggingImpl.class);
-
+    // 加载ProxyFactory
     typeAliasRegistry.registerAlias("CGLIB", CglibProxyFactory.class);
     typeAliasRegistry.registerAlias("JAVASSIST", JavassistProxyFactory.class);
 
@@ -655,7 +667,9 @@ public class Configuration {
   }
 
   public StatementHandler newStatementHandler(Executor executor, MappedStatement mappedStatement, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
+    // 创建具有路由功能的 StatementHandler
     StatementHandler statementHandler = new RoutingStatementHandler(executor, mappedStatement, parameterObject, rowBounds, resultHandler, boundSql);
+    // 应用插件到 StatementHandler 上
     statementHandler = (StatementHandler) interceptorChain.pluginAll(statementHandler);
     return statementHandler;
   }
@@ -663,21 +677,32 @@ public class Configuration {
   public Executor newExecutor(Transaction transaction) {
     return newExecutor(transaction, defaultExecutorType);
   }
-
+  //创建一个执行器，默认是SIMPLE
   public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
     executorType = executorType == null ? defaultExecutorType : executorType;
     executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
     Executor executor;
+    //根据executorType来创建相应的执行器,Configuration默认是SIMPLE
     if (ExecutorType.BATCH == executorType) {
       executor = new BatchExecutor(this, transaction);
     } else if (ExecutorType.REUSE == executorType) {
       executor = new ReuseExecutor(this, transaction);
     } else {
+      //创建SimpleExecutor实例，并且包含Configuration和transaction属性
       executor = new SimpleExecutor(this, transaction);
     }
+    //如果要求缓存，生成另一种CachingExecutor,装饰者模式,默认都是返回CachingExecutor
+    /**
+     * 二级缓存开关配置示例
+     * <settings>
+     *   <setting name="cacheEnabled" value="true"/>
+     * </settings>
+     */
     if (cacheEnabled) {
+      //CachingExecutor使用装饰器模式，将executor的功能添加上了二级缓存的功能
       executor = new CachingExecutor(executor);
     }
+    //此处调用插件,通过插件可以改变Executor行为
     executor = (Executor) interceptorChain.pluginAll(executor);
     return executor;
   }
@@ -824,7 +849,7 @@ public class Configuration {
   public Map<String, XNode> getSqlFragments() {
     return sqlFragments;
   }
-
+  // 添加到Configuration的interceptorChain属性中
   public void addInterceptor(Interceptor interceptor) {
     interceptorChain.addInterceptor(interceptor);
   }
@@ -836,7 +861,7 @@ public class Configuration {
   public void addMappers(String packageName) {
     mapperRegistry.addMappers(packageName);
   }
-
+  // 通过 MapperRegistry 绑定 mapper 类
   public <T> void addMapper(Class<T> type) {
     mapperRegistry.addMapper(type);
   }
@@ -848,7 +873,7 @@ public class Configuration {
   public boolean hasMapper(Class<?> type) {
     return mapperRegistry.hasMapper(type);
   }
-
+  //检测configuration是否有key为statementName的MappedStatement
   public boolean hasStatement(String statementName) {
     return hasStatement(statementName, true);
   }

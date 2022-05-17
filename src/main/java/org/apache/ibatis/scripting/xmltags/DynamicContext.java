@@ -37,12 +37,14 @@ public class DynamicContext {
   static {
     OgnlRuntime.setPropertyAccessor(ContextMap.class, new ContextAccessor());
   }
-
+  //bindings 则用于存储一些额外的信息，比如运行时参数
   private final ContextMap bindings;
+  //sqlBuilder 变量用于存放 SQL 片段的解析结果
   private final StringJoiner sqlBuilder = new StringJoiner(" ");
   private int uniqueNumber = 0;
 
   public DynamicContext(Configuration configuration, Object parameterObject) {
+    // 创建 ContextMap,并将运行时参数放入ContextMap中
     if (parameterObject != null && !(parameterObject instanceof Map)) {
       MetaObject metaObject = configuration.newMetaObject(parameterObject);
       boolean existsTypeHandler = configuration.getTypeHandlerRegistry().hasTypeHandler(parameterObject.getClass());
@@ -50,6 +52,7 @@ public class DynamicContext {
     } else {
       bindings = new ContextMap(null, false);
     }
+    // 存放运行时参数 parameterObject 以及 databaseId
     bindings.put(PARAMETER_OBJECT_KEY, parameterObject);
     bindings.put(DATABASE_ID_KEY, configuration.getDatabaseId());
   }
@@ -61,11 +64,11 @@ public class DynamicContext {
   public void bind(String name, Object value) {
     bindings.put(name, value);
   }
-
+  //拼接Sql片段
   public void appendSql(String sql) {
     sqlBuilder.add(sql);
   }
-
+  //得到sql字符串
   public String getSql() {
     return sqlBuilder.toString().trim();
   }
@@ -73,7 +76,7 @@ public class DynamicContext {
   public int getUniqueNumber() {
     return uniqueNumber++;
   }
-
+  //继承HashMap
   static class ContextMap extends HashMap<String, Object> {
     private static final long serialVersionUID = 2977601501966151582L;
     private final MetaObject parameterMetaObject;
@@ -87,6 +90,7 @@ public class DynamicContext {
     @Override
     public Object get(Object key) {
       String strKey = (String) key;
+      // 检查是否包含 strKey，若包含则直接返回
       if (super.containsKey(strKey)) {
         return super.get(strKey);
       }
@@ -94,11 +98,11 @@ public class DynamicContext {
       if (parameterMetaObject == null) {
         return null;
       }
-
       if (fallbackParameterObject && !parameterMetaObject.hasGetter(strKey)) {
         return parameterMetaObject.getOriginalObject();
       } else {
         // issue #61 do not modify the context when reading
+        // 从运行时参数中查找结果，这里会在${name}解析时，通过name获取运行时参数值，替换掉${name}字符串
         return parameterMetaObject.getValue(strKey);
       }
     }

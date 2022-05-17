@@ -42,11 +42,13 @@ public class MapperRegistry {
 
   @SuppressWarnings("unchecked")
   public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
+    // 从 knownMappers 中获取与 type 对应的 MapperProxyFactory
     final MapperProxyFactory<T> mapperProxyFactory = (MapperProxyFactory<T>) knownMappers.get(type);
     if (mapperProxyFactory == null) {
       throw new BindingException("Type " + type + " is not known to the MapperRegistry.");
     }
     try {
+      // 创建代理对象
       return mapperProxyFactory.newInstance(sqlSession);
     } catch (Exception e) {
       throw new BindingException("Error getting mapper instance. Cause: " + e, e);
@@ -64,11 +66,13 @@ public class MapperRegistry {
       }
       boolean loadCompleted = false;
       try {
+        // 将 type 和 MapperProxyFactory 进行绑定，MapperProxyFactory 可为 mapper 接口生成代理类
         knownMappers.put(type, new MapperProxyFactory<>(type));
         // It's important that the type is added before the parser is run
         // otherwise the binding may automatically be attempted by the
         // mapper parser. If the type is already known, it won't try.
         MapperAnnotationBuilder parser = new MapperAnnotationBuilder(config, type);
+        // 解析注解中的信息
         parser.parse();
         loadCompleted = true;
       } finally {
@@ -98,9 +102,13 @@ public class MapperRegistry {
    *          the super type
    * @since 3.2.2
    */
+  // 其实就是通过 VFS（虚拟文件系统）获取指定包下的所有文件的Class，
+  // 也就是所有的Mapper接口，然后遍历每个Mapper接口进行解析
   public void addMappers(String packageName, Class<?> superType) {
+    // 查找包下的父类为 Object.class 的类。
     ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
     resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
+    // 获取查找结果
     Set<Class<? extends Class<?>>> mapperSet = resolverUtil.getClasses();
     for (Class<?> mapperClass : mapperSet) {
       addMapper(mapperClass);
@@ -114,6 +122,7 @@ public class MapperRegistry {
    *          the package name
    * @since 3.2.2
    */
+  // 传入包名和Object.class类型
   public void addMappers(String packageName) {
     addMappers(packageName, Object.class);
   }

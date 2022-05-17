@@ -127,9 +127,11 @@ public class ParamNameResolver {
       Object value = args[names.firstKey()];
       return wrapToMapIfCollection(value, useActualParamName ? names.get(0) : null);
     } else {
+      //创建一个Map，key为method的参数名，值为method的运行时参数值
       final Map<String, Object> param = new ParamMap<>();
       int i = 0;
       for (Map.Entry<Integer, String> entry : names.entrySet()) {
+        // 添加 <参数名, 参数值> 键值对到 param 中
         param.put(entry.getValue(), args[entry.getKey()]);
         // add generic param names (param1, param2, ...)
         final String genericParamName = GENERIC_NAME_PREFIX + (i + 1);

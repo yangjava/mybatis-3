@@ -96,6 +96,7 @@ public class Resources {
    * @return The resource
    * @throws java.io.IOException If the resource cannot be found or read
    */
+  // 我们使用 MyBatis 提供的工具类 Resources 加载配置文件，得到一个输入流。
   public static InputStream getResourceAsStream(String resource) throws IOException {
     return getResourceAsStream(null, resource);
   }

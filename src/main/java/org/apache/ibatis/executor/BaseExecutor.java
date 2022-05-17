@@ -135,7 +135,11 @@ public abstract class BaseExecutor implements Executor {
     CacheKey key = createCacheKey(ms, parameter, rowBounds, boundSql);
     return query(ms, parameter, rowBounds, resultHandler, key, boundSql);
   }
-
+  // 从一级缓存中查找查询结果。若缓存未命中，再向数据库进行查询。
+  // 至此我们明白了一级二级缓存的大概思路，
+  // 先从二级缓存中查找，若未命中二级缓存，
+  // 再从一级缓存中查找，若未命中一级缓存，
+  // 再从数据库查询数据
   @SuppressWarnings("unchecked")
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
@@ -149,10 +153,12 @@ public abstract class BaseExecutor implements Executor {
     List<E> list;
     try {
       queryStack++;
+      // 从一级缓存中获取缓存项
       list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
       if (list != null) {
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
       } else {
+        // 一级缓存未命中，则从数据库中查询
         list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
       }
     } finally {
@@ -317,15 +323,19 @@ public abstract class BaseExecutor implements Executor {
       }
     }
   }
-
+  // 调用了doQuery方法进行查询，最后将查询结果放入一级缓存
   private <E> List<E> queryFromDatabase(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
     List<E> list;
+    // 向缓存中存储一个占位符
     localCache.putObject(key, EXECUTION_PLACEHOLDER);
     try {
+      // 调用 doQuery 进行查询
       list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);
     } finally {
+      // 移除占位符
       localCache.removeObject(key);
     }
+    // 缓存查询结果
     localCache.putObject(key, list);
     if (ms.getStatementType() == StatementType.CALLABLE) {
       localOutputParameterCache.putObject(key, parameter);
@@ -334,6 +344,7 @@ public abstract class BaseExecutor implements Executor {
   }
 
   protected Connection getConnection(Log statementLog) throws SQLException {
+    //通过transaction来获取Connection
     Connection connection = transaction.getConnection();
     if (statementLog.isDebugEnabled()) {
       return ConnectionLogger.newInstance(connection, statementLog, queryStack);

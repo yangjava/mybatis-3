@@ -68,6 +68,7 @@ public final class MappedStatement {
       mappedStatement.configuration = configuration;
       mappedStatement.id = id;
       mappedStatement.sqlSource = sqlSource;
+      // statementType 的默认类型为PREPARED，这里将会创建PreparedStatementHandler
       mappedStatement.statementType = StatementType.PREPARED;
       mappedStatement.resultSetType = ResultSetType.DEFAULT;
       mappedStatement.parameterMap = new ParameterMap.Builder(configuration, "defaultParameterMap", null, new ArrayList<>()).build();
@@ -302,6 +303,7 @@ public final class MappedStatement {
   }
 
   public BoundSql getBoundSql(Object parameterObject) {
+    // 调用 sqlSource 的 getBoundSql 获取 BoundSql，把method运行时参数传进去
     BoundSql boundSql = sqlSource.getBoundSql(parameterObject);
     List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
     if (parameterMappings == null || parameterMappings.isEmpty()) {

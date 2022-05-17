@@ -90,17 +90,25 @@ public class CacheBuilder {
   }
 
   public Cache build() {
+    // 设置默认的缓存类型（PerpetualCache）和缓存装饰器（LruCache）
     setDefaultImplementations();
+    // 通过反射创建缓存
     Cache cache = newBaseCacheInstance(implementation, id);
     setCacheProperties(cache);
     // issue #352, do not apply decorators to custom caches
+    // 仅对内置缓存 PerpetualCache 应用装饰器
     if (PerpetualCache.class.equals(cache.getClass())) {
+      // 遍历装饰器集合，应用装饰器
       for (Class<? extends Cache> decorator : decorators) {
+        // 通过反射创建装饰器实例
         cache = newCacheDecoratorInstance(decorator, cache);
+        // 设置属性值到缓存实例中
         setCacheProperties(cache);
       }
+      // 应用标准的装饰器，比如 LoggingCache、SynchronizedCache
       cache = setStandardDecorators(cache);
     } else if (!LoggingCache.class.isAssignableFrom(cache.getClass())) {
+      // 应用具有日志功能的缓存装饰器
       cache = new LoggingCache(cache);
     }
     return cache;
@@ -108,6 +116,7 @@ public class CacheBuilder {
 
   private void setDefaultImplementations() {
     if (implementation == null) {
+      //设置默认缓存类型为PerpetualCache
       implementation = PerpetualCache.class;
       if (decorators.isEmpty()) {
         decorators.add(LruCache.class);
@@ -187,8 +196,10 @@ public class CacheBuilder {
   }
 
   private Cache newBaseCacheInstance(Class<? extends Cache> cacheClass, String id) {
+    //获取构造器
     Constructor<? extends Cache> cacheConstructor = getBaseCacheConstructor(cacheClass);
     try {
+      //通过构造器实例化Cache
       return cacheConstructor.newInstance(id);
     } catch (Exception e) {
       throw new CacheException("Could not instantiate cache implementation (" + cacheClass + "). Cause: " + e, e);

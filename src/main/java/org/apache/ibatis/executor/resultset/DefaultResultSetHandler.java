@@ -185,13 +185,15 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     final List<Object> multipleResults = new ArrayList<>();
 
     int resultSetCount = 0;
+    //获取第一个ResultSet,通常只会有一个
     ResultSetWrapper rsw = getFirstResultSet(stmt);
-
+    //从配置中读取对应的ResultMap，通常也只会有一个，设置多个是通过逗号来分隔，我们平时有这样设置吗？
     List<ResultMap> resultMaps = mappedStatement.getResultMaps();
     int resultMapCount = resultMaps.size();
     validateResultMapsCount(rsw, resultMapCount);
     while (rsw != null && resultMapCount > resultSetCount) {
       ResultMap resultMap = resultMaps.get(resultSetCount);
+      // 处理结果集
       handleResultSet(rsw, resultMap, multipleResults, null);
       rsw = getNextResultSet(stmt);
       cleanUpAfterHandlingResultSet();
@@ -298,8 +300,11 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         handleRowValues(rsw, resultMap, null, RowBounds.DEFAULT, parentMapping);
       } else {
         if (resultHandler == null) {
+          // 创建默认的结果处理器
           DefaultResultHandler defaultResultHandler = new DefaultResultHandler(objectFactory);
+          // 处理结果集的行数据
           handleRowValues(rsw, resultMap, defaultResultHandler, rowBounds, null);
+          // 将结果加入multipleResults中
           multipleResults.add(defaultResultHandler.getResultList());
         } else {
           handleRowValues(rsw, resultMap, resultHandler, rowBounds, null);
@@ -324,8 +329,10 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     if (resultMap.hasNestedResultMaps()) {
       ensureNoRowBounds();
       checkResultHandler();
+      // 处理嵌套映射
       handleRowValuesForNestedResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);
     } else {
+      // 处理简单映射
       handleRowValuesForSimpleResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);
     }
   }
@@ -349,10 +356,14 @@ public class DefaultResultSetHandler implements ResultSetHandler {
       throws SQLException {
     DefaultResultContext<Object> resultContext = new DefaultResultContext<>();
     ResultSet resultSet = rsw.getResultSet();
+    // 根据 RowBounds 定位到指定行记录
     skipRows(resultSet, rowBounds);
+    // ResultSet是一个集合，很有可能我们查询的就是一个List，这就就每条数据遍历处理
     while (shouldProcessMoreRows(resultContext, rowBounds) && !resultSet.isClosed() && resultSet.next()) {
       ResultMap discriminatedResultMap = resolveDiscriminatedResultMap(resultSet, resultMap, null);
+      // 从 resultSet 中获取结果
       Object rowValue = getRowValue(rsw, discriminatedResultMap, null);
+      // 存储结果到resultHandler的ResultList，最后ResultList加入multipleResults中返回
       storeObject(resultHandler, resultContext, rowValue, parentMapping, resultSet);
     }
   }
@@ -394,14 +405,18 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   //
 
   private Object getRowValue(ResultSetWrapper rsw, ResultMap resultMap, String columnPrefix) throws SQLException {
+    // 这个Map是用来存储延迟加载的BountSql的，我们下面来看
     final ResultLoaderMap lazyLoader = new ResultLoaderMap();
+    // 创建实体类对象，比如 Employ 对象
     Object rowValue = createResultObject(rsw, resultMap, lazyLoader, columnPrefix);
     if (rowValue != null && !hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
       final MetaObject metaObject = configuration.newMetaObject(rowValue);
       boolean foundValues = this.useConstructorMappings;
       if (shouldApplyAutomaticMappings(resultMap, false)) {
+        //自动映射,结果集中有的column，但resultMap中并没有配置
         foundValues = applyAutomaticMappings(rsw, resultMap, metaObject, columnPrefix) || foundValues;
       }
+      // 根据 <resultMap> 节点中配置的映射关系进行映射
       foundValues = applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, columnPrefix) || foundValues;
       foundValues = lazyLoader.size() > 0 || foundValues;
       rowValue = foundValues || configuration.isReturnInstanceForEmptyRow() ? rowValue : null;
@@ -628,6 +643,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     this.useConstructorMappings = false; // reset previous mapping result
     final List<Class<?>> constructorArgTypes = new ArrayList<>();
     final List<Object> constructorArgs = new ArrayList<>();
+    // 调用重载方法创建实体类对象
     Object resultObject = createResultObject(rsw, resultMap, constructorArgTypes, constructorArgs, columnPrefix);
     if (resultObject != null && !hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
       final List<ResultMapping> propertyMappings = resultMap.getPropertyResultMappings();

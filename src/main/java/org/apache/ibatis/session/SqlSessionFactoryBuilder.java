@@ -33,6 +33,7 @@ import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 public class SqlSessionFactoryBuilder {
 
   public SqlSessionFactory build(Reader reader) {
+    // // 调用重载方法
     return build(reader, null, null);
   }
 
@@ -46,7 +47,10 @@ public class SqlSessionFactoryBuilder {
 
   public SqlSessionFactory build(Reader reader, String environment, Properties properties) {
     try {
+      // 创建配置文件解析器,XMLConfigBuilder是专门解析mybatis的配置文件的类
       XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties);
+      // 调用 parser.parse() 方法解析配置文件，生成 Configuration 对象
+      // 创建 DefaultSqlSessionFactory 对象
       return build(parser.parse());
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error building SqlSession.", e);
@@ -87,7 +91,7 @@ public class SqlSessionFactoryBuilder {
       }
     }
   }
-
+  //创建DefaultSqlSessionFactory实例
   public SqlSessionFactory build(Configuration config) {
     return new DefaultSqlSessionFactory(config);
   }

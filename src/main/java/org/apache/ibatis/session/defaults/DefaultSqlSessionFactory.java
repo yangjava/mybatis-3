@@ -37,7 +37,7 @@ import org.apache.ibatis.transaction.managed.ManagedTransactionFactory;
 public class DefaultSqlSessionFactory implements SqlSessionFactory {
 
   private final Configuration configuration;
-
+  //只是将configuration设置为其属性
   public DefaultSqlSessionFactory(Configuration configuration) {
     this.configuration = configuration;
   }
@@ -86,14 +86,20 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
   public Configuration getConfiguration() {
     return configuration;
   }
-
+  // ExecutorType 指定Executor的类型，分为三种：SIMPLE, REUSE, BATCH，默认使用的是SIMPLE
+  // TransactionIsolationLevel 指定事务隔离级别，使用null,则表示使用数据库默认的事务隔离界别
+  // autoCommit 是否自动提交，传过来的参数为false，表示不自动提交
   private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
     Transaction tx = null;
     try {
+      // 获取配置中的环境信息，包括了数据源信息、事务等
       final Environment environment = configuration.getEnvironment();
+      // 创建事务工厂
       final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
       tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
+      // 创建Executor，即执行器，它是真正用来Java和数据库交互操作的类
       final Executor executor = configuration.newExecutor(tx, execType);
+      // 创建DefaultSqlSession对象返回，其实现了SqlSession接口
       return new DefaultSqlSession(configuration, executor, autoCommit);
     } catch (Exception e) {
       closeTransaction(tx); // may have fetched a connection so lets call close()

@@ -27,7 +27,7 @@ import org.apache.ibatis.session.SqlSession;
  * @author Lasse Voss
  */
 public class MapperProxyFactory<T> {
-
+  //存放Mapper接口Class
   private final Class<T> mapperInterface;
   private final Map<Method, MapperMethodInvoker> methodCache = new ConcurrentHashMap<>();
 
@@ -42,13 +42,15 @@ public class MapperProxyFactory<T> {
   public Map<Method, MapperMethodInvoker> getMethodCache() {
     return methodCache;
   }
-
+  //生成mapperInterface的代理类
   @SuppressWarnings("unchecked")
   protected T newInstance(MapperProxy<T> mapperProxy) {
     return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] { mapperInterface }, mapperProxy);
   }
 
   public T newInstance(SqlSession sqlSession) {
+    // 创建 MapperProxy 对象，MapperProxy 实现了 InvocationHandler 接口，代理逻辑封装在此类中
+    // 将sqlSession传入MapperProxy对象中，第二个参数是Mapper的接口，并不是其实现类
     final MapperProxy<T> mapperProxy = new MapperProxy<>(sqlSession, mapperInterface, methodCache);
     return newInstance(mapperProxy);
   }

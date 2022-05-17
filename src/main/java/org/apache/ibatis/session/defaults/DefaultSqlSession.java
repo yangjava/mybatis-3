@@ -46,10 +46,11 @@ import org.apache.ibatis.session.SqlSession;
  * @author Clinton Begin
  */
 public class DefaultSqlSession implements SqlSession {
-
+  // mybatis全局配置
   private final Configuration configuration;
+  // SQL执行器
   private final Executor executor;
-
+  // 是否自动提交
   private final boolean autoCommit;
   private boolean dirty;
   private List<Cursor<?>> cursorList;
@@ -73,10 +74,13 @@ public class DefaultSqlSession implements SqlSession {
   @Override
   public <T> T selectOne(String statement, Object parameter) {
     // Popular vote was to return null on 0 results and throw exception on too many.
+    // 调用 selectList 获取结果
     List<T> list = this.selectList(statement, parameter);
     if (list.size() == 1) {
+      // 返回结果
       return list.get(0);
     } else if (list.size() > 1) {
+      // 如果查询结果大于1则抛出异常
       throw new TooManyResultsException("Expected one result (or null) to be returned by selectOne(), but found: " + list.size());
     } else {
       return null;
@@ -137,6 +141,7 @@ public class DefaultSqlSession implements SqlSession {
 
   @Override
   public <E> List<E> selectList(String statement, Object parameter) {
+    // 调用重载方法
     return this.selectList(statement, parameter, RowBounds.DEFAULT);
   }
 
@@ -147,7 +152,9 @@ public class DefaultSqlSession implements SqlSession {
 
   private <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds, ResultHandler handler) {
     try {
+      // 通过MappedStatement的Id获取 MappedStatement
       MappedStatement ms = configuration.getMappedStatement(statement);
+      // 调用 Executor 实现类中的 query 方法
       return executor.query(ms, wrapCollection(parameter), rowBounds, handler);
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);

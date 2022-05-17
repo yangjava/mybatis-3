@@ -40,9 +40,12 @@ public class ResultMap {
   private String id;
   private Class<?> type;
   private List<ResultMapping> resultMappings;
+  //用于存储 <id> 节点对应的 ResultMapping 对象
   private List<ResultMapping> idResultMappings;
   private List<ResultMapping> constructorResultMappings;
+  //用于存储 <id> 和 <result> 节点对应的 ResultMapping 对象
   private List<ResultMapping> propertyResultMappings;
+  //用于存储 所有<id>、<result> 节点 column 属性
   private Set<String> mappedColumns;
   private Set<String> mappedProperties;
   private Discriminator discriminator;
@@ -90,10 +93,14 @@ public class ResultMap {
       resultMap.propertyResultMappings = new ArrayList<>();
       final List<String> constructorArgNames = new ArrayList<>();
       for (ResultMapping resultMapping : resultMap.resultMappings) {
+        // resultMapping.getNestedQueryId()不为空，表示当前resultMap是中有需要延迟查询的属性
         resultMap.hasNestedQueries = resultMap.hasNestedQueries || resultMapping.getNestedQueryId() != null;
+        // resultMapping.getNestedResultMapId()不为空，表示当前resultMap是一个嵌套查询
         resultMap.hasNestedResultMaps = resultMap.hasNestedResultMaps || (resultMapping.getNestedResultMapId() != null && resultMapping.getResultSet() == null);
+        // 有可能当前ResultMapp既是一个嵌套查询，又存在延迟查询的属性
         final String column = resultMapping.getColumn();
         if (column != null) {
+          // 将 colum 转换成大写，并添加到 mappedColumns 集合中
           resultMap.mappedColumns.add(column.toUpperCase(Locale.ENGLISH));
         } else if (resultMapping.isCompositeResult()) {
           for (ResultMapping compositeResultMapping : resultMapping.getComposites()) {
@@ -103,6 +110,7 @@ public class ResultMap {
             }
           }
         }
+        // 添加属性 property 到 mappedProperties 集合中
         final String property = resultMapping.getProperty();
         if (property != null) {
           resultMap.mappedProperties.add(property);
@@ -120,6 +128,7 @@ public class ResultMap {
         }
       }
       if (resultMap.idResultMappings.isEmpty()) {
+        // 添加 resultMapping 到 propertyResultMappings 中
         resultMap.idResultMappings.addAll(resultMap.resultMappings);
       }
       if (!constructorArgNames.isEmpty()) {
@@ -137,6 +146,7 @@ public class ResultMap {
         });
       }
       // lock down collections
+      // 将以下这些集合变为不可修改集合
       resultMap.resultMappings = Collections.unmodifiableList(resultMap.resultMappings);
       resultMap.idResultMappings = Collections.unmodifiableList(resultMap.idResultMappings);
       resultMap.constructorResultMappings = Collections.unmodifiableList(resultMap.constructorResultMappings);

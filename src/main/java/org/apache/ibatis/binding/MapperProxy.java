@@ -80,9 +80,11 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
+      // 如果方法是定义在 Object 类中的，则直接调用
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, args);
       } else {
+        // 从缓存中获取 MapperMethod 对象，若缓存未命中，则创建 MapperMethod 对象
         return cachedInvoker(method).invoke(proxy, method, args, sqlSession);
       }
     } catch (Throwable t) {
@@ -105,6 +107,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
             throw new RuntimeException(e);
           }
         } else {
+          //创建一个MapperMethod，参数为mapperInterface和method还有Configuration
           return new PlainMethodInvoker(new MapperMethod(mapperInterface, method, sqlSession.getConfiguration()));
         }
       });
@@ -139,7 +142,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
       super();
       this.mapperMethod = mapperMethod;
     }
-
+    // 调用 execute 方法执行 SQL
     @Override
     public Object invoke(Object proxy, Method method, Object[] args, SqlSession sqlSession) throws Throwable {
       return mapperMethod.execute(sqlSession, args);

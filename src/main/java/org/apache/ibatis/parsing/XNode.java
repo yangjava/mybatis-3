@@ -253,7 +253,7 @@ public class XNode {
     String value = attributes.getProperty(name);
     return value == null ? def : Float.valueOf(value);
   }
-
+   // 获取子节点列表
   public List<XNode> getChildren() {
     List<XNode> children = new ArrayList<>();
     NodeList nodeList = node.getChildNodes();
@@ -269,11 +269,15 @@ public class XNode {
   }
 
   public Properties getChildrenAsProperties() {
+    //创建一个Properties对象
     Properties properties = new Properties();
+    // 获取并遍历子节点
     for (XNode child : getChildren()) {
+      // 获取 property 节点的 name 和 value 属性
       String name = child.getStringAttribute("name");
       String value = child.getStringAttribute("value");
       if (name != null && value != null) {
+        // 设置属性到属性对象中
         properties.setProperty(name, value);
       }
     }

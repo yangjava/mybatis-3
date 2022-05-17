@@ -39,6 +39,19 @@ import java.util.concurrent.locks.ReadWriteLock;
  * @author Clinton Begin
  */
 
+/**
+ * ###  一级缓存
+ *
+ * - MyBatis的一级查询缓存（也叫作本地缓存）是基于org.apache.ibatis.cache.impl.PerpetualCache 类的 HashMap本地缓存，其作用域是SqlSession，myBatis 默认一级查询缓存是开启状态，且不能关闭。
+ * - 在同一个SqlSession中两次执行相同的 sql查询语句，第一次执行完毕后，会将查询结果写入到缓存中，第二次会从缓存中直接获取数据，而不再到数据库中进行查询，这样就减少了数据库的访问，从而提高查询效率。
+ * - 基于PerpetualCache 的 HashMap本地缓存，其存储作用域为 Session，PerpetualCache 对象是在SqlSession中的Executor的localcache属性当中存放，当 Session flush 或 close 之后，该Session中的所有 Cache 就将清空。
+ *
+ * ### 二级缓存
+ *
+ * - 二级缓存与一级缓存其机制相同，默认也是采用 PerpetualCache，HashMap存储，不同在于其存储作用域为 Mapper(Namespace)，每个Mapper中有一个Cache对象，存放在Configration中，并且将其放进当前Mapper的所有MappedStatement当中，并且可自定义存储源，如 Ehcache。
+ *
+ * - Mapper级别缓存，定义在Mapper文件的<cache>标签并需要开启此缓存
+ */
 public interface Cache {
 
   /**
